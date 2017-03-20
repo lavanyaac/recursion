@@ -5,223 +5,186 @@
 //pseudocode
 //
 var parseJSON = function(json) {
-	console.log('json input', json, json.length)
-	var index, charAtIndex = '';
-	while(charAtIndex !== undefined){
-		next();
-		return value(charAtIndex)
-	}
+    var json = json.trim();
+    var index = 0;
+    var char = json[index];
 
-  	function value(char){
-  		switch(char){
-  			case(" "):
-  				break;
-			case('"'):
-				return checkString();
-			case('f'):
-			case('t'):
-				return checkBoolean();
-			case('n'):
-				return checkNull();
-			case('{'):
-				return checkObject();
-				break;
-			case('['):
-				return checkArray();
-				break;
-			default:
-				if(charAtIndex === '-' || (charAtIndex >= 0 && charAtIndex <= 9)){
-					return checkNumber();
-				}else{
-					console.log("Error: unknown character type: ",charAtIndex)
-				}
-		}
-  	}
+    return value();
 
-	function next(){
-		index !== undefined ? index++ : index = 0;
-		charAtIndex = json[index];
-		//console.log(index, charAtIndex)
-		if(charAtIndex === " "){
-			next();
-		}
-	}
+    function error(msg) {
+        throw new SyntaxError(msg);
+    }
 
-	function prev(){
-		index !== undefined ? index-- : index = 0;
-		charAtIndex = json[index];
-	}
+    function value() {
+        switch (char) {
 
-	function checkString(){
-		var result = ''
-		var endOfString = false
-		while(charAtIndex !== undefined){
-			next();
-			if(charAtIndex === '"'){
-				endOfString = true;
-				break;
-			}	
-			result += charAtIndex
-		}
-		if(!endOfString){
-			// bthrow 'syntax error'
-		}
-		return result;
-	}
+            case ("\""):
+                return checkString();
+            case ("t"):
+            case ("f"):
+                return checkBoolean();
+            case ("n"):
+                return checkNull();
+            case ("{"):
+                return checkObject();
+            case ("["):
+                return checkArray();
+            default:
+                if (char === '-' || (char >= 0 && char <= 9)) {
+                    return checkNumber();
+                } else {
+                    error("Unknown char: \"" + char + "\" , at index: " + index);
+                }
+        }
+    }
 
-	function checkBoolean(){
-		var result = "";
-		var limit = (charAtIndex === 't')  ? 4 : 5 ;
-		for(var i = 0; i < limit; i++){
-			result += charAtIndex;
-			next();
-		}
-		if(result === 'true'){
-			return true;
-		}else if(result === 'false'){
-			return false;
-		}else{
-			//error
-		}
-	}
+    function next() {
+        index++;
+        char = json[index];
 
-	function checkNull(){
-		var result = "";
-		for(var i = 0; i < 4; i++ ){
-			result += charAtIndex;
-			next();
-		}
-		if(result === 'null'){
-			return null;
-		}else{
-			//error
-		}
-	}
+        return char;
+    }
 
-	function checkNumber(){
-		var result = charAtIndex;
-		var foundDot = false;
-		var charAfterDotIsNum = false;
+    function ignoreWhiteSpace() {
+        while (char && " \t\n\r".includes(char)) {
+            next();
+        }
+    }
 
-		while(charAtIndex !== undefined && charAtIndex.match('[-.0-9]')){
-			next();
-			if(charAtIndex === '.' || (charAtIndex >= 0 && charAtIndex <= 9)){
-				if(foundDot && !charAfterDotIsNum){
-					if(!charAtIndex.match('[0-9]')){
-						console.log("should throw an error");
-						return;
-					}else{
-						charAfterDotIsNum = true;
-					}
-				}
-				if(charAtIndex === '.'){
-					if(foundDot){
-						console.log("should throw an error");
-						return;
-					}
-					foundDot = true;
-				}
-				if(charAtIndex === '-' && result.length > 1){
-					throw new Error("unknown character: ",charAtIndex)
-				}
-				result += charAtIndex;
-			}
-		}
-		if(foundDot && !charAfterDotIsNum){
-			error("No number found after dot")
-			return;
-		}
-		if(charAtIndex !== undefined){
-			prev();
-		}
-		return Number(result);
-	}
+    function checkBoolean() {
+        var result = "";
+        limit = (char === "t") ? 4 : 5;
+        for (var i = 0; i < limit; i++) {
+            result += char;
+            next();
+        }
+        if (result === "true") {
+            return true
+        };
+        if (result === "false") {
+            return false
+        };
+        error("Bad Boolean: " + result);
+    }
 
-	function checkArray(){
-		var result = [];
-		next();
-		while(charAtIndex !== undefined  &&  charAtIndex !== ']'){
-			result.push(value(charAtIndex))
-			next();
-			if(charAtIndex === ','){
-				next();
-			}
-		}
-		if(charAtIndex === undefined){
-			prev();
-		}
-		if(charAtIndex !== ']'){
-			error("Syntaxerror");
-		}
-		return result;
-	}
+    function checkNull() {
+        var result = "";
+        for (var i = 0; i < 4; i++) {
+            result += char;
+            next();
+        }
+        if (result === "null") {
+            return null
+        };
+        error("Bad Null object: " + result);
+    }
 
-	function checkObject(){
-		var result = {};
-		next();
-		while(charAtIndex !== undefined && charAtIndex !== '}'){
-			var val = value(charAtIndex);
-			next();
-			if(charAtIndex === ',' || charAtIndex === '}'){
-				result[key] = val;
-			} 
-			if(charAtIndex === ':'){
-				key = val;
-			}
-			next();
-		}
-		//prev();
+    function checkString() {
+        //console.log("inside string")
+        var escapeRef = {
+            "\\": "\\",
+            "\"": "\"",
+            "t": "\t",
+            "r": "\r",
+            "b": "\b",
+            "n": "\n",
+            "f": "\f"
+        }
+        var result = "";
+        next();
 
-		if(charAtIndex === undefined){
-			prev();
-		}
-		if(charAtIndex !== '}'){
-			throw new Error("Syntaxerror")
-		}
-		return result;
-	}
-};
+        while (char) {
+            if (char === "\"") {
+                next();
+                return result;
+            }
+            if (char === "\\") {
+                next();
+                if (escapeRef[char]) {
+                    result += escapeRef[char];
+                }
+            } else {
+                result += char;
+            }
+            next();
+        }
+        error("Bad String - Missing quotation marks")
+    }
 
+    function getNumbers() {
+        var result = "";
+        while (char >= 0 && char <= 9) {
+            result += char;
+            next();
+        }
+        return result;
+    }
 
+    function checkNumber() {
+        var result = "";
+        if (char === "-") {
+            result += char;
+            next();
+        }
+        var numString = getNumbers();
+        numString !== "" ? result += numString : error("Bad Number");
 
-// a = JSON.stringify("acvb")
-// console.log('stringify', a.split(''))
-// b = JSON.parse(a)
-// console.log(b)
+        if (char === ".") {
+            result += char;
+            next();
+            numString = getNumbers();
+            numString !== "" ? result += numString : error("Bad Number - No number after decimal point");
+        }
+        result = Number(result);
+        return isNaN(result) ? error("Bad Number") : result;
+    }
 
+    function checkArray() {
+        var result = [];
+        next();
 
-// inp = JSON.stringify("acvb")
-// out = parseJSON(inp)
-// console.log(out, typeof out)
+        while (char) {
+            ignoreWhiteSpace();
+            if (char === "]") {
+                next();
+                return result;
+            }
+            result.push(value());
+            ignoreWhiteSpace();
+            if (char === "," || char === "]") {
+                if (char === ",") {
+                    next();
+                }
+            } else {
+                error("Bad Array - Missing comma or Bracket");
+            }
+        }
+        error("Bad Array - Missing Bracket");
+    }
 
-// inp = JSON.stringify(false)
-// console.log(inp)
-// out = parseJSON(inp)
-// console.log(out, typeof out)
+    function checkObject() {
+        var result = {};
+        var key;
+        next();
 
-// inp = JSON.stringify(null)
-// console.log(inp)
-// out = parseJSON(inp)
-// console.log(out, typeof out)
+        while (char) {
+            ignoreWhiteSpace();
+            if (char === "}") {
+                next();
+                return result;
+            }
+            ignoreWhiteSpace();
+            key = value();
+            ignoreWhiteSpace();
+            char === ":" ? (next(), ignoreWhiteSpace(), result[key] = value()) : error("Bad Object - Missing colon");
+            ignoreWhiteSpace();
+            if (char === "," || char === "}") {
+                if (char === ",") { next(); }
+            } else {
+                error("Bad Object - Missing comma or Bracket");
+            }
+        }
+        error("Bad Object - Missing Bracket");
+    }
 
-// inp = JSON.stringify(Math.sqrt(5))
-// console.log(inp)
-// out = parseJSON("0.00011999999999999999")
-// console.log(out, typeof out)
-
-// inp = JSON.stringify([-23.45, "tyyu", [4,5,[6,7],7,8]])
-// console.log(inp)
-// out = parseJSON(inp)
-// console.log("output........", out, typeof out)
-
-inp = JSON.stringify({})
-console.log("input .....",inp)
-out = parseJSON('{"foo":true}')
-console.log("output........", out, typeof out)
-console.log("Expected output........", JSON.parse(inp))
-
-// subout = out[7];
-// console.log(typeof subout)
-
-
-
+}
